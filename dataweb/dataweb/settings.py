@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-^^6f+4@^f37e9ww6gog(74%e_2&*^x1@0f*^kc52ng()fp)k0e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -59,9 +59,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+        'rest_framework.authentication.SessionAuthentication',  # 👈 Add this
+    ],
 }
 
 ASGI_APPLICATION = 'your_project_name.asgi.application'

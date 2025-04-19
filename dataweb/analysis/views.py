@@ -19,6 +19,7 @@ from .models import MLModel
 from .serializers import MLModelSerializer
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from rest_framework import authentication
 
 class UploadCSVView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -43,6 +44,8 @@ class EDAView(APIView):
         })
     
 class PredictView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request, dataset_id):
         target = request.data.get("target")
         dataset = UploadedDataset.objects.get(id=dataset_id)
