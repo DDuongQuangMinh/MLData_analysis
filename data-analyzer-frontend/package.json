@@ -11,7 +11,6 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-scripts": "5.0.1",
-    "tailwindcss": "^3.4.17",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -40,7 +39,8 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.3"
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.4"
   },
   "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
   "main": "index.js",
