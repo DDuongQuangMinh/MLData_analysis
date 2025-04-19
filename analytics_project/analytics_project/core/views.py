@@ -1,7 +1,7 @@
 from rest_framework import viewsets, generics, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from django.contrib.auth.models import User
 from .models import Dataset, TrainedModel
 from .serializers import DatasetSerializer, TrainedModelSerializer, UserSerializer
@@ -10,15 +10,14 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import io
 import base64
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from .models import Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
 import joblib
 import os
 from django.conf import settings
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 
 class RegisterUser(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -53,7 +52,7 @@ class TrainedModelViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated])
 def eda_summary(request, dataset_id):
     try:
         dataset = Dataset.objects.get(id=dataset_id, user=request.user)
@@ -73,7 +72,7 @@ def eda_summary(request, dataset_id):
     return Response(summary)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated])
 def eda_visuals(request, dataset_id):
     try:
         dataset = Dataset.objects.get(id=dataset_id, user=request.user)
@@ -98,7 +97,7 @@ def eda_visuals(request, dataset_id):
     return Response(visuals)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated])
 def train_model(request, dataset_id):
     try:
         dataset = Dataset.objects.get(id=dataset_id, user=request.user)
@@ -129,13 +128,12 @@ def train_model(request, dataset_id):
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     joblib.dump(model, model_path)
 
-    from .models import TrainedModel
     trained = TrainedModel.objects.create(user=request.user, name=model_name, model_file=f"models/{model_name}")
 
     return Response({"model_id": trained.id, "accuracy": acc})
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated])
 def predict_model(request, model_id):
     try:
         model_entry = TrainedModel.objects.get(id=model_id, user=request.user)
@@ -153,3 +151,62 @@ def predict_model(request, model_id):
 
     prediction = model.predict(df)[0]
     return Response({"prediction": prediction})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def train_model(request, dataset_id):
+    try:
+        dataset = Dataset.objects.get(id=dataset_id, user=request.user)
+    except Dataset.DoesNotExist:
+        return Response({"error": "Dataset not found"}, status=404)
+
+    df = pd.read_csv(dataset.file.path)
+    target = request.data.get('target')
+    model_type = request.data.get('model_type', 'decision_tree')
+
+    if target not in df.columns:
+        return Response({"error": "Invalid target column"}, status=400)
+
+    X = pd.get_dummies(df.drop(columns=[target]))
+    y = df[target].astype('int') if df[target].dtype == 'bool' else df[target]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+    if model_type == 'random_forest':
+        model = RandomForestClassifier()
+    elif model_type == 'logistic_regression':
+        model = LogisticRegression(max_iter=1000)
+    else:
+        model = DecisionTreeClassifier()
+
+    model.fit(X_train, y_train)
+    acc = accuracy_score(y_test, model.predict(X_test))
+
+    version = TrainedModel.objects.filter(user=request.user, dataset=dataset).count() + 1
+    model_name = f"{model_type}_v{version}_user{request.user.id}_data{dataset.id}.pkl"
+    model_path = os.path.join(settings.MEDIA_ROOT, 'models', model_name)
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
+    trained = TrainedModel.objects.create(
+        user=request.user,
+        dataset=dataset,
+        name=f"{model_type.title()} v{version}",
+        model_type=model_type,
+        model_file=f"models/{model_name}"
+    )
+
+    return Response({"model_id": trained.id, "accuracy": acc})
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def list_models(request, dataset_id):
+    models = TrainedModel.objects.filter(user=request.user, dataset_id=dataset_id).order_by('-created_at')
+    return Response([
+        {
+            "id": m.id,
+            "name": m.name,
+            "model_type": m.model_type,
+            "created_at": m.created_at,
+        } for m in models
+    ])

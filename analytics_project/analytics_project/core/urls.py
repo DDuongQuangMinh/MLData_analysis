@@ -4,6 +4,7 @@ from .views import DatasetViewSet, TrainedModelViewSet, RegisterUser
 from .views import eda_summary, eda_visuals
 from .views import train_model
 from .views import predict_model
+from .views import list_models
 
 router = DefaultRouter()
 router.register(r'datasets', DatasetViewSet, basename='dataset')
@@ -15,5 +16,6 @@ urlpatterns = [
     path('eda/<int:dataset_id>/visuals/', eda_visuals, name='eda-visuals'),
     path('train/<int:dataset_id>/', train_model, name='train-model'),
     path('predict/<int:model_id>/', predict_model, name='predict-model'),
+    path('models/<int:dataset_id>/', list_models, name='list-models'),
     path('', include(router.urls)),
 ]
