@@ -11,13 +11,17 @@ The repository includes the following directories and files:
 ## Installation
 To set up the project locally:
 1. Clone the repository:
+
    `git clone https://github.com/DDuongQuangMinh/MLData_analysis.git`
 2. Navigate into the project directory:
+
    `cd MLData_analysis`
 3. Create and activate a virtual environment:
+
    `python -m venv venv
     source venv/bin/activate  # On Windows, use venv\Scripts\activate`
 4. Install the required dependencies:
+
    `pip install -r requirements.txt`
 
 ## Usage
