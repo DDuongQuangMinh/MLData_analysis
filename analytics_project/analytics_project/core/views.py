@@ -28,6 +28,7 @@ class DatasetViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 class TrainedModelViewSet(viewsets.ModelViewSet):
+    queryset = TrainedModel.objects.all()
     serializer_class = TrainedModelSerializer
     permission_classes = [permissions.IsAuthenticated]
 
